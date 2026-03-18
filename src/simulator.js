@@ -35,10 +35,6 @@ const EVENTS = {
     { text: 'Tip of the main stem is soft.', weight: 1 },
     { text: 'Soil smells different today.', weight: 1 },
   ],
-    { text: 'The soil feels drier than usual.', weight: 2 },
-    { text: 'Drooping slightly. Needs water.', weight: 2 },
-    { text: 'A branch was damaged by wind.', weight: 1 },
-  ],
   death: [
     { text: 'No response to water.', weight: 1 },
     { text: 'All leaves fell overnight.', weight: 1 },
