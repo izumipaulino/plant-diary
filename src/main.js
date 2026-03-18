@@ -1,9 +1,10 @@
 // Plant Diary - Main Entry
-// Iteration 2: Agent & Plant detail pages + routing
+// Iteration 3: Growth charts, death moments, feed filter
 
 import plantsData from './data/plants.json';
 import { personalities } from './personalities.js';
 import { simulateDay } from './simulator.js';
+import { drawGrowthChart } from './chart.js';
 
 const AGENT_ICONS = {
   scientist: '🔬', worrier: '😟', poet: '🌸',
@@ -148,8 +149,20 @@ function renderEntry(entry, compact = false) {
         <div class="entry-data-item"><div class="entry-data-value">${entry.leafCount}</div><div class="entry-data-label">Leaves</div></div>
         <div class="entry-data-item"><div class="entry-data-value">${entry.temperature}°C</div><div class="entry-data-label">Temp</div></div>
         <div class="entry-data-item"><div class="entry-data-value">${Math.round(entry.waterLevel*100)}%</div><div class="entry-data-label">Water</div></div>
-      </div>`;
+      </div>
+      <div class="entry-chart"><canvas class="mini-chart"></canvas></div>`;
   }
+
+  // Draw chart after append
+  requestAnimationFrame(() => {
+    const canvas = el.querySelector('.mini-chart');
+    if (canvas && agentMap[entry.agentName]) {
+      const agentEntries = agentMap[entry.agentName].entries;
+      const color = COLORS[entry.personality] || '#2ecc71';
+      drawGrowthChart(canvas, agentEntries, entry.plant.maxHeight, color);
+    }
+  });
+
   return el;
 }
 
@@ -157,7 +170,18 @@ function renderEntry(entry, compact = false) {
 
 function renderFeedPage(container) {
   container.innerHTML = '';
-  allEntries.forEach(e => container.appendChild(renderEntry(e)));
+  const filtered = activeFilter
+    ? allEntries.filter(e => e.agentName === activeFilter)
+    : allEntries;
+
+  if (activeFilter) {
+    const backBtn = document.createElement('div');
+    backBtn.className = 'detail-back';
+    backBtn.innerHTML = `<button onclick="location.hash='/';activeFilter=null" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:0.78rem;font-family:var(--font)">← Show all agents</button>`;
+    container.appendChild(backBtn);
+  }
+
+  filtered.forEach(e => container.appendChild(renderEntry(e)));
 }
 
 function renderAgentPage(agentName, container) {
@@ -224,17 +248,28 @@ function renderPlantPage(plantId, container) {
 }
 
 // Agents bar
+let activeFilter = null;
+
 function renderAgentsBar() {
   const list = document.getElementById('agents-list');
   list.innerHTML = '';
+
+  // All pill
+  const allPill = document.createElement('button');
+  allPill.className = `agent-pill${!activeFilter ? ' active' : ''}`;
+  allPill.innerHTML = `<span class="pill-dot" style="background:var(--green)"></span>All`;
+  allPill.onclick = () => { activeFilter = null; renderAgentsBar(); renderFeedPage(document.getElementById('feed')); };
+  list.appendChild(allPill);
+
   Object.values(agentMap).forEach(a => {
     const color = COLORS[a.personality] || '#2ecc71';
-    const pill = document.createElement('a');
-    pill.className = 'agent-pill';
-    pill.href = `#/agent/${a.name}`;
+    const pill = document.createElement('button');
+    pill.className = `agent-pill${activeFilter === a.name ? ' active' : ''}`;
     pill.innerHTML = `<span class="pill-dot" style="background:${color}"></span>${a.name} <span class="pill-count">${a.entries.length}</span>`;
+    pill.onclick = () => { activeFilter = a.name; renderAgentsBar(); renderFeedPage(document.getElementById('feed')); };
     list.appendChild(pill);
   });
+
   document.getElementById('stat-agents').textContent = `${Object.keys(agentMap).length} agents`;
   document.getElementById('stat-plants').textContent = `${new Set(Object.values(agentMap).map(a => a.plant.id)).size} plants`;
   document.getElementById('stat-entries').textContent = `${allEntries.length} entries`;
