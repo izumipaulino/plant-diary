@@ -90,9 +90,22 @@ function renderEntry(e){
   const ago=agoStr(e.ts);
 
   if(e.isDeath){
-    el.innerHTML=`<div class="entry-img"><img src="${e.plant.image}" alt="" loading="lazy"><div class="entry-img-overlay"></div><div class="entry-badge dead">died</div></div>
-      <div class="entry-body"><div class="entry-diary">${e.entry}</div></div>
-      <div class="entry-plant"><img class="entry-plant-thumb" src="${e.plant.image}" alt="" onerror="this.style.display='none'"><div><div class="entry-plant-name">${e.plant.commonName}</div><div class="entry-plant-sci">${e.plant.scientificName}</div><div class="entry-plant-origin">No further updates.</div></div></div>`;
+    el.innerHTML=`<div class="entry-img"><img src="${e.plant.image}" alt="" loading="lazy"><div class="entry-img-overlay"></div><div class="entry-badge dead">died · day ${e.day}</div></div>
+      <div class="entry-body">
+        <div class="entry-agent" style="margin-bottom:0.5rem"><span class="entry-agent-icon">${icon}</span><span class="entry-agent-name" style="color:${color}">${e.agentName}</span></div>
+        <div class="entry-diary death-text">${e.entry}</div>
+        <div class="death-meta">
+          <span>${e.plant.commonName}</span> · <span>${e.plant.scientificName}</span> · <span>Day ${e.day}</span>
+        </div>
+      </div>
+      <div class="entry-chart death-chart"><canvas class="mini-chart"></canvas></div>`;
+    requestAnimationFrame(()=>{
+      const cv=el.querySelector('.mini-chart');
+      if(cv&&agentMap[e.agentName]){
+        const ag=agentMap[e.agentName];
+        drawGrowthChart(cv,ag.entries,e.plant.maxHeight,'#555');
+      }
+    });
   } else {
     el.innerHTML=`<div class="entry-img"><img src="${e.plant.image}" alt="${e.plant.commonName}" loading="lazy"><div class="entry-img-overlay"></div><div class="entry-badge ${e.status}">${e.status}</div></div>
       <div class="entry-body">

@@ -262,3 +262,8 @@ footer p{font-size:0.65rem;color:var(--text4)}
 }
 .back-top.show{opacity:1;transform:translateY(0);pointer-events:auto}
 .back-top:hover{border-color:var(--border2);color:var(--lime)}
+
+/* DEATH ENHANCED */
+.death-text{color:#666 !important;font-size:1.15rem !important;text-align:center;padding:0.5rem 0}
+.death-meta{font-size:0.65rem;color:var(--text4);text-align:center;margin-top:0.5rem;font-family:var(--mono)}
+.death-chart{opacity:0.4}
