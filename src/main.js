@@ -119,12 +119,6 @@ function renderEntry(e){
   return el;
 }
 
-function renderFeed(container){
-  container.innerHTML='';
-  const list=activeFilter?allEntries.filter(e=>e.agentName===activeFilter):allEntries;
-  list.forEach(e=>container.appendChild(renderEntry(e)));
-  animateEntries();
-}
 
 function renderAgentPage(name,container){
   const ag=agentMap[name];
@@ -192,21 +186,68 @@ function agoStr(ts){
 }
 
 // === ROUTER ===
+let feedPage = 0;
+const PAGE_SIZE = 8;
+
 function route(){
   const hash=location.hash.slice(1)||'/';
   const feed=document.getElementById('feed');
   feed.innerHTML='<div class="skel skel-card"></div><div class="skel skel-card"></div>';
+  feedPage = 0;
   setTimeout(()=>{
     if(hash.startsWith('/agent/'))renderAgentPage(decodeURIComponent(hash.slice(8)),feed);
     else if(hash.startsWith('/plant/'))renderPlantPage(hash.slice(7),feed);
-    else renderFeed(feed);
+    else renderFeedPaginated(feed);
   },200);
+}
+
+function renderFeedPaginated(container){
+  const list = activeFilter ? allEntries.filter(e=>e.agentName===activeFilter) : allEntries;
+  const page = list.slice(0, PAGE_SIZE);
+  container.innerHTML = '';
+  page.forEach(e => container.appendChild(renderEntry(e)));
+
+  // Load more button
+  if(list.length > PAGE_SIZE){
+    const btn = document.createElement('button');
+    btn.className = 'load-more';
+    btn.textContent = `Load more (${list.length - PAGE_SIZE} remaining)`;
+    btn.onclick = () => {
+      feedPage++;
+      const next = list.slice(0, (feedPage + 1) * PAGE_SIZE);
+      container.innerHTML = '';
+      next.forEach(e => container.appendChild(renderEntry(e)));
+      if(next.length < list.length){
+        const b2 = document.createElement('button');
+        b2.className = 'load-more';
+        b2.textContent = `Load more (${list.length - next.length} remaining)`;
+        b2.onclick = btn.onclick;
+        container.appendChild(b2);
+      }
+      animateEntries();
+    };
+    container.appendChild(btn);
+  }
+  animateEntries();
+}
+
+// Back to top
+function initBackToTop(){
+  const btn = document.createElement('button');
+  btn.className = 'back-top';
+  btn.innerHTML = '↑';
+  btn.onclick = () => window.scrollTo({top:0,behavior:'smooth'});
+  document.body.appendChild(btn);
+  window.addEventListener('scroll', ()=>{
+    btn.classList.toggle('show', window.scrollY > 600);
+  });
 }
 
 // === INIT ===
 document.addEventListener('DOMContentLoaded',()=>{
   allEntries=generateData();
   initHeroCanvas();
+  initBackToTop();
   renderTabs();
   route();
   addEventListener('hashchange',route);
