@@ -350,4 +350,32 @@ document.addEventListener('DOMContentLoaded', () => {
   renderAgentsBar();
   handleRoute();
   window.addEventListener('hashchange', handleRoute);
+
+  // Scroll animation for entries
+  const observer = new IntersectionObserver((items) => {
+    items.forEach(item => {
+      if (item.isIntersecting) {
+        item.target.style.opacity = '1';
+        item.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, { threshold: 0.1 });
+
+  // Re-observe on route change
+  const origHandle = handleRoute;
+  window.addEventListener('hashchange', () => {
+    setTimeout(() => {
+      document.querySelectorAll('.entry').forEach(el => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(20px)';
+        el.style.transition = 'opacity 0.6s cubic-bezier(0.16,1,0.3,1), transform 0.6s cubic-bezier(0.16,1,0.3,1)';
+        observer.observe(el);
+      });
+    }, 100);
+  });
+
+  // Initial observation
+  setTimeout(() => {
+    document.querySelectorAll('.entry').forEach(el => observer.observe(el));
+  }, 400);
 });
