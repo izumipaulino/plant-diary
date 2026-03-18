@@ -159,7 +159,12 @@ function renderPlantPage(id,container){
     <div class="detail-hero"><img src="${plant.image}" alt=""><div class="detail-hero-overlay"></div><div class="detail-hero-content"><h2>${plant.commonName}</h2><div class="detail-sub" style="font-style:italic">${plant.scientificName}</div></div></div>
     <div class="detail-info"><div class="detail-meta"><div class="detail-meta-item"><span class="detail-meta-val">${plant.maxHeight}cm</span><span class="detail-meta-label">Max height</span></div><div class="detail-meta-item"><span class="detail-meta-val">${plant.tempRange[0]}–${plant.tempRange[1]}°C</span><span class="detail-meta-label">Temp</span></div><div class="detail-meta-item"><span class="detail-meta-val">${plant.light}</span><span class="detail-meta-label">Light</span></div><div class="detail-meta-item"><span class="detail-meta-val">${agents.length}</span><span class="detail-meta-label">Agents</span></div></div>
     <div class="detail-status ${alive?'alive':'dead'}">${alive?'● Alive':'○ Deceased'}</div>
-    <p class="detail-desc">${plant.description}</p></div>
+    <p class="detail-desc">${plant.description}</p>
+    ${plant.funFact?'<div class="plant-fact"><strong>Fun fact:</strong> '+plant.funFact+'</div>':''}
+    ${plant.evolution?'<div class="plant-fact"><strong>Evolution:</strong> '+plant.evolution+'</div>':''}
+    ${plant.threat?'<div class="plant-fact"><strong>Threat status:</strong> '+plant.threat+'</div>':''}
+    ${plant.symbolism?'<div class="plant-fact"><strong>Symbolism:</strong> '+plant.symbolism+'</div>':''}
+    </div>
     <div class="detail-back"><a href="#/">← Back to feed</a></div>
     <div class="detail-timeline"><h3>All Entries</h3></div>`;
   const tl=container.querySelector('.detail-timeline');

@@ -267,3 +267,12 @@ footer p{font-size:0.65rem;color:var(--text4)}
 .death-text{color:#666 !important;font-size:1.15rem !important;text-align:center;padding:0.5rem 0}
 .death-meta{font-size:0.65rem;color:var(--text4);text-align:center;margin-top:0.5rem;font-family:var(--mono)}
 .death-chart{opacity:0.4}
+
+/* PLANT FACTS */
+.plant-fact{
+  font-size:0.78rem;color:var(--text2);line-height:1.7;
+  margin-top:0.6rem;padding:0.6rem 0.8rem;
+  background:rgba(0,0,0,0.15);border-radius:8px;
+  border-left:2px solid var(--border2);
+}
+.plant-fact strong{color:var(--lime);font-weight:600;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px}
