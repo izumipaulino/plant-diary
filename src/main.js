@@ -295,6 +295,72 @@ document.addEventListener('DOMContentLoaded',()=>{
   initHeroCanvas();
   initBackToTop();
   renderTabs();
+  renderDashboard();
   route();
   addEventListener('hashchange',route);
 });
+
+// === DASHBOARD ===
+function renderDashboard(){
+  const alive = Object.values(agentMap).filter(a=>a.entries[a.entries.length-1]?.status!=='dead');
+  const dead = Object.values(agentMap).filter(a=>a.entries[a.entries.length-1]?.status==='dead');
+
+  document.getElementById('dash-alive').textContent = alive.length;
+  document.getElementById('dash-dead').textContent = dead.length;
+
+  // Tallest
+  let tallest = {name:'—',height:0};
+  Object.values(agentMap).forEach(a=>{
+    const maxH = Math.max(...a.entries.map(e=>e.height));
+    if(maxH > tallest.height) tallest = {name:a.plant.commonName, height:maxH};
+  });
+  document.getElementById('dash-tallest').textContent = `${tallest.name} (${tallest.height}cm)`;
+
+  // Oldest
+  let oldest = {name:'—',days:0};
+  Object.values(agentMap).forEach(a=>{
+    if(a.entries.length > oldest.days) oldest = {name:a.plant.commonName, days:a.entries.length};
+  });
+  document.getElementById('dash-oldest').textContent = `${oldest.name} (${oldest.days} days)`;
+
+  // Bar chart
+  const canvas = document.getElementById('dash-bar-chart');
+  if(canvas) drawBarChart(canvas);
+}
+
+function drawBarChart(canvas){
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width = canvas.offsetWidth * 2;
+  const h = canvas.height = canvas.offsetHeight * 2;
+  ctx.scale(2,2);
+  const cw = w/2, ch = h/2;
+
+  const agents = Object.values(agentMap);
+  const barW = (cw - 40) / agents.length - 8;
+  const maxDays = Math.max(...agents.map(a=>a.entries.length));
+
+  agents.forEach((a,i)=>{
+    const x = 20 + i * (barW + 8);
+    const barH = (a.entries.length / maxDays) * (ch - 40);
+    const y = ch - 20 - barH;
+    const color = COLORS[a.personality] || '#2ecc71';
+    const alive = a.entries[a.entries.length-1]?.status !== 'dead';
+
+    // Bar
+    ctx.fillStyle = color + (alive ? 'cc' : '44');
+    ctx.beginPath();
+    ctx.roundRect(x, y, barW, barH, 3);
+    ctx.fill();
+
+    // Label
+    ctx.fillStyle = '#8aaa8e';
+    ctx.font = '9px Inter';
+    ctx.textAlign = 'center';
+    ctx.fillText(a.name.replace('Agent-',''), x + barW/2, ch - 4);
+
+    // Count
+    ctx.fillStyle = '#a8e063';
+    ctx.font = 'bold 11px JetBrains Mono';
+    ctx.fillText(a.entries.length, x + barW/2, y - 6);
+  });
+}

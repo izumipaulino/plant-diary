@@ -285,3 +285,15 @@ footer p{font-size:0.65rem;color:var(--text4)}
   display:inline-block;
 }
 .milestone-flower{background:rgba(168,224,99,0.1);color:var(--lime)}
+
+/* DASHBOARD */
+#dashboard{border-top:1px solid var(--border);padding:4rem 2rem;background:var(--bg2)}
+.dash-inner{max-width:700px;margin:0 auto}
+.dash-inner h2{font-family:var(--serif);font-size:1.5rem;font-weight:300;color:var(--lime);margin-bottom:1.5rem;text-align:center}
+.dash-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:2rem}
+@media(max-width:640px){.dash-grid{grid-template-columns:repeat(2,1fr)}}
+.dash-card{text-align:center;padding:1.2rem 0.5rem;background:var(--card);border:1px solid var(--border);border-radius:10px}
+.dash-card-val{font-size:1.2rem;font-weight:700;color:var(--lime);font-family:var(--mono)}
+.dash-card-label{font-size:0.55rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-top:0.2rem}
+.dash-chart{height:120px}
+.dash-chart canvas{width:100%;height:100%;display:block}

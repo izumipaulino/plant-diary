@@ -68,6 +68,32 @@
     </div>
   </section>
 
+  <!-- Stats Dashboard -->
+  <section id="dashboard">
+    <div class="dash-inner">
+      <h2>Garden Statistics</h2>
+      <div class="dash-grid">
+        <div class="dash-card">
+          <div class="dash-card-val" id="dash-alive">0</div>
+          <div class="dash-card-label">Plants Alive</div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-card-val" id="dash-dead">0</div>
+          <div class="dash-card-label">Plants Deceased</div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-card-val" id="dash-tallest">—</div>
+          <div class="dash-card-label">Tallest Plant</div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-card-val" id="dash-oldest">—</div>
+          <div class="dash-card-label">Longest-lived</div>
+        </div>
+      </div>
+      <div class="dash-chart"><canvas id="dash-bar-chart"></canvas></div>
+    </div>
+  </section>
+
   <footer>
     <p>Plant Diary · Built with OpenClaw · Data from WCVP</p>
   </footer>
