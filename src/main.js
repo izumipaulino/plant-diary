@@ -63,7 +63,12 @@ function generateSampleEntries() {
   return entries;
 }
 
-const DEATH_EVENTS = ['No response to water.','All leaves fell overnight.','The stem has gone soft.','It stopped growing 7 days ago.','Roots rotted. Nothing left to save.'];
+const DEATH_EVENTS = [
+  'No response to water.','All leaves fell overnight.','The stem has gone soft.',
+  'It stopped growing 7 days ago.','Roots rotted. Nothing left to save.',
+  'Dried out completely. Despite everything.','Collapsed under its own weight.',
+  'The last leaf fell at dawn.','Wilted beyond recovery.',
+];
 function choose(arr) { return arr[Math.floor(Math.random() * arr.length)] }
 
 function generateEntryText(snapshot, personality, plant) {
@@ -80,29 +85,65 @@ const TEMPLATES = {
     `Day {day}. Height: {height}cm. Leaves: {leafCount}. Status: {status}. {event}`,
     `Observation {day}: {leafCount} leaves at {height}cm. Moisture: {waterPct}%. {event}`,
     `Report {day}. Temp: {temp}°C. {name} growth nominal. {event}`,
+    `Daily log. {day}th observation period. {leafCount} leaves recorded. {event} No anomalies detected.`,
+    `Cross-reference: {name}, {height}cm. Consistent with expected growth curve. {event}`,
+    `Measurement {day}: stem diameter increased by 0.1mm. {event} Correlating with temperature data.`,
+    `Soil analysis shows pH within acceptable range. {event} Continuing observation protocol.`,
   ],
   worrier: [
     `Day {day}... {name} has {leafCount} leaves. {status === 'stressed' ? 'Something feels wrong.' : '{event}'}`,
     `I checked again. {height}cm. {waterPct < 40 ? 'Is it enough water?' : '{event}'} I hope it's okay.`,
     `Day {day}. {event} What if I'm doing something wrong?`,
+    `I looked at it 12 times today. {leafCount} leaves. {event} Please be okay.`,
+    `Another check. {height}cm. {event} Is it growing enough? Is it too much?`,
+    `Day {day}. I turned the pot 45 degrees. {event} Was that the right angle?`,
+    `{name} has been at {height}cm for a while now. {event} Is that normal? I can never tell.`,
   ],
   poet: [
     `Day {day}. {leafCount} leaves reaching for a sky they'll never touch. {event}`,
     `Sunlight fell on {name} for hours. {event} I watched every second.`,
     `Day {day}. Standing at {height}cm. {event} There is something beautiful in that.`,
+    `The wind moved through {leafCount} leaves today. {event} Each one a different note.`,
+    `{name} at {height}cm. {event} A small green sentence in the language of growing.`,
+    `Day {day}. {event} Time passes differently when you're rooted in one place.`,
+    `Morning light hit the {leafCount}th leaf. {event} I wrote a poem about it. Deleted it.`,
   ],
-  minimalist: [`Day {day}. {event}.`,`{height}cm. {status}.`,`Day {day}. {leafCount} leaves.`,`{name}. Day {day}. Alive.`],
+  minimalist: [
+    `Day {day}. {event}.`,
+    `{height}cm. {status}.`,
+    `Day {day}. {leafCount} leaves.`,
+    `{name}. Day {day}. Alive.`,
+    `Rain. {event}`,
+    `Day {day}. Still here.`,
+    `{leafCount}.`,
+    `Growing.`,
+  ],
   optimist: [
     `Day {day}! {name} is {height}cm tall! {event} What a great day!`,
     `Another amazing day! {leafCount} leaves! {event} So proud!`,
+    `Day {day}: everything is wonderful! {event} Keep going, little one!`,
+    `{event} {leafCount} leaves and counting! Day {day} is the best day yet!`,
+    `Incredible growth! {height}cm from where it started! {event} Nature is amazing!`,
+    `Day {day} update: {name} is thriving! {event} Best plant ever!`,
+    `Every leaf is a tiny miracle! {event} Day {day} brings more joy!`,
   ],
   philosopher: [
     `Day {day}. {event} But what does it mean to "grow"?`,
     `{name} stands at {height}cm. {event} Does it know I'm watching?`,
+    `Day {day}. {event} We are both performing for each other, I think.`,
+    `{leafCount} leaves. {event} Each one a question I cannot answer.`,
+    `If {name} could speak, would it say more or less than me? {event}`,
+    `Day {day}. {event} To be alive is to be incomplete. {name} understands this.`,
+    `{height}cm of existence. {event} We measure what we cannot comprehend.`,
   ],
   confused: [
     `Day {day}. {event} I think that's good? Is that good?`,
-    `{leafCount} leaves now. Or maybe {leafCount+1}. {event}`,
+    `{leafCount} leaves now. Or maybe {leafCount+1}. I keep losing count. {event}`,
+    `Day {day}. {event} Wait, is that what flowers look like?`,
+    `{name} is {height}cm tall. Or is that the other one? {event}`,
+    `I think it grew? Or maybe it was always this tall. {event}`,
+    `Day {day}. Someone told me {name} is a plant. I'm still not sure what that means. {event}`,
+    `{event} I watered it. Or did I water the desk? {leafCount} leaves either way.`,
   ],
 };
 
