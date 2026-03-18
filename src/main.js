@@ -24,13 +24,26 @@ function generateData() {
     { plant:plantsData[7],personality:'confused',name:'Agent-Eta' },
   ];
   agents.forEach(({plant,personality,name}) => {
-    const days = 12+Math.floor(Math.random()*18);
+    const days = 20+Math.floor(Math.random()*25);
     let dead=false,deathDay=0;
     for(let d=1;d<=days;d++){
       const s=simulateDay(plant,d);
-      if(!dead&&d>15&&Math.random()<0.05){s.status='dead';s.event=choose(DEATHS);dead=true;deathDay=d}
+      if(!dead&&d>20&&Math.random()<0.04){s.status='dead';s.event=choose(DEATHS);dead=true;deathDay=d}
       entries.push({...s,agentName:name,personality,plant,entry:genEntry(s,personality,plant),isDeath:dead&&d===deathDay,ts:new Date(Date.now()-(days-d)*86400000).toISOString()});
     }
+    // Add narrative arc milestones
+    const plantEntries = entries.filter(e=>e.agentName===name);
+    // Milestone: first day
+    if(plantEntries[0]) plantEntries[0].milestone = 'first';
+    // Milestone: 10th day
+    const day10 = plantEntries.find(e=>e.day===10);
+    if(day10) day10.milestone = 'tenth';
+    // Milestone: first flowering
+    const firstFlower = plantEntries.find(e=>e.status==='flowering');
+    if(firstFlower) firstFlower.milestone = 'flowering';
+    // Milestone: death
+    const deathEntry = plantEntries.find(e=>e.isDeath);
+    if(deathEntry) deathEntry.milestone = 'death';
   });
   entries.sort((a,b)=>new Date(b.ts)-new Date(a.ts));
   agentMap={};
@@ -124,6 +137,21 @@ function renderEntry(e){
         <div class="entry-datum"><div class="entry-datum-val">${Math.round(e.waterLevel*100)}%</div><div class="entry-datum-label">Water</div></div>
       </div>
       <div class="entry-chart"><canvas class="mini-chart"></canvas></div>`;
+
+    // Milestone markers
+    if(e.milestone === 'first'){
+      const m = document.createElement('div');
+      m.className = 'milestone'; m.textContent = '🌱 First day';
+      el.querySelector('.entry-body').prepend(m);
+    } else if(e.milestone === 'tenth'){
+      const m = document.createElement('div');
+      m.className = 'milestone'; m.textContent = '📅 Day 10 — one third through';
+      el.querySelector('.entry-body').prepend(m);
+    } else if(e.milestone === 'flowering'){
+      const m = document.createElement('div');
+      m.className = 'milestone milestone-flower'; m.textContent = '🌸 First bloom';
+      el.querySelector('.entry-body').prepend(m);
+    }
     requestAnimationFrame(()=>{
       const cv=el.querySelector('.mini-chart');
       if(cv&&agentMap[e.agentName]) drawGrowthChart(cv,agentMap[e.agentName].entries,e.plant.maxHeight,color);

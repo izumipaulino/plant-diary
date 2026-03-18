@@ -276,3 +276,12 @@ footer p{font-size:0.65rem;color:var(--text4)}
   border-left:2px solid var(--border2);
 }
 .plant-fact strong{color:var(--lime);font-weight:600;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.5px}
+
+/* MILESTONES */
+.milestone{
+  font-size:0.65rem;color:var(--teal);font-weight:500;
+  margin-bottom:0.4rem;padding:0.2rem 0.5rem;
+  background:rgba(26,188,156,0.08);border-radius:4px;
+  display:inline-block;
+}
+.milestone-flower{background:rgba(168,224,99,0.1);color:var(--lime)}
