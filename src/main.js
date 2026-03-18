@@ -1,381 +1,213 @@
 // Plant Diary - Main Entry
-// Iteration 3: Growth charts, death moments, feed filter
+// V6: Complete visual overhaul
 
 import plantsData from './data/plants.json';
 import { personalities } from './personalities.js';
 import { simulateDay } from './simulator.js';
 import { drawGrowthChart } from './chart.js';
 
-const AGENT_ICONS = {
-  scientist: '🔬', worrier: '😟', poet: '🌸',
-  minimalist: '◼', optimist: '☀️', philosopher: '💭', confused: '❓',
-};
-const COLORS = {
-  scientist: '#3498db', worrier: '#e67e22', poet: '#9b59b6',
-  minimalist: '#7f8c8d', optimist: '#f39c12', philosopher: '#1abc9c', confused: '#e74c3c',
-};
+const ICONS = { scientist:'🔬',worrier:'😟',poet:'🌸',minimalist:'◼',optimist:'☀️',philosopher:'💭',confused:'❓' };
+const COLORS = { scientist:'#5c9ce6',worrier:'#ff9800',poet:'#b388ff',minimalist:'#78909c',optimist:'#ffd54f',philosopher:'#26c6da',confused:'#ef5350' };
 
-// Data store
-let allEntries = [];
-let agentMap = {};
+let allEntries = [], agentMap = {}, activeFilter = null;
 
-// Generate data
-function generateSampleEntries() {
+// === DATA ===
+function generateData() {
   const entries = [];
-  const agentPlants = [
-    { plant: plantsData[0], personality: 'scientist', name: 'Agent-Alpha' },
-    { plant: plantsData[1], personality: 'optimist', name: 'Agent-Epsilon' },
-    { plant: plantsData[2], personality: 'poet', name: 'Agent-Gamma' },
-    { plant: plantsData[3], personality: 'minimalist', name: 'Agent-Delta' },
-    { plant: plantsData[4], personality: 'worrier', name: 'Agent-Beta' },
-    { plant: plantsData[5], personality: 'philosopher', name: 'Agent-Zeta' },
-    { plant: plantsData[7], personality: 'confused', name: 'Agent-Eta' },
+  const agents = [
+    { plant:plantsData[0],personality:'scientist',name:'Agent-Alpha' },
+    { plant:plantsData[1],personality:'optimist',name:'Agent-Epsilon' },
+    { plant:plantsData[2],personality:'poet',name:'Agent-Gamma' },
+    { plant:plantsData[3],personality:'minimalist',name:'Agent-Delta' },
+    { plant:plantsData[4],personality:'worrier',name:'Agent-Beta' },
+    { plant:plantsData[5],personality:'philosopher',name:'Agent-Zeta' },
+    { plant:plantsData[7],personality:'confused',name:'Agent-Eta' },
   ];
-
-  agentPlants.forEach(({ plant, personality, name }) => {
-    const days = 12 + Math.floor(Math.random() * 18);
-    let isDead = false, deathDay = 0;
-    for (let day = 1; day <= days; day++) {
-      const snapshot = simulateDay(plant, day);
-      if (!isDead && day > 15 && Math.random() < 0.05) {
-        snapshot.status = 'dead';
-        snapshot.event = choose(DEATH_EVENTS);
-        isDead = true; deathDay = day;
-      }
-      const entry = generateEntryText(snapshot, personality, plant);
-      entries.push({
-        ...snapshot, agentName: name, personality, plant, entry,
-        isDeathNotice: isDead && day === deathDay,
-        timestamp: new Date(Date.now() - (days - day) * 86400000).toISOString(),
-      });
+  agents.forEach(({plant,personality,name}) => {
+    const days = 12+Math.floor(Math.random()*18);
+    let dead=false,deathDay=0;
+    for(let d=1;d<=days;d++){
+      const s=simulateDay(plant,d);
+      if(!dead&&d>15&&Math.random()<0.05){s.status='dead';s.event=choose(DEATHS);dead=true;deathDay=d}
+      entries.push({...s,agentName:name,personality,plant,entry:genEntry(s,personality,plant),isDeath:dead&&d===deathDay,ts:new Date(Date.now()-(days-d)*86400000).toISOString()});
     }
   });
-
-  entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-  // Build agent map
-  agentMap = {};
-  entries.forEach(e => {
-    if (!agentMap[e.agentName]) agentMap[e.agentName] = { name: e.agentName, personality: e.personality, entries: [], plant: e.plant };
-    agentMap[e.agentName].entries.push(e);
-  });
-
+  entries.sort((a,b)=>new Date(b.ts)-new Date(a.ts));
+  agentMap={};
+  entries.forEach(e=>{if(!agentMap[e.agentName])agentMap[e.agentName]={name:e.agentName,personality:e.personality,entries:[],plant:e.plant};agentMap[e.agentName].entries.push(e)});
   return entries;
 }
 
-const DEATH_EVENTS = [
-  'No response to water.','All leaves fell overnight.','The stem has gone soft.',
-  'It stopped growing 7 days ago.','Roots rotted. Nothing left to save.',
-  'Dried out completely. Despite everything.','Collapsed under its own weight.',
-  'The last leaf fell at dawn.','Wilted beyond recovery.',
-];
-function choose(arr) { return arr[Math.floor(Math.random() * arr.length)] }
+const DEATHS=['No response to water.','All leaves fell overnight.','The stem has gone soft.','It stopped growing 7 days ago.','Roots rotted.','Dried out completely.','Collapsed under its own weight.','The last leaf fell at dawn.'];
+function choose(a){return a[Math.floor(Math.random()*a.length)]}
 
-function generateEntryText(snapshot, personality, plant) {
-  const { day, height, leafCount, status, event, waterLevel, temperature } = snapshot;
-  const t = TEMPLATES[personality] || TEMPLATES.scientist;
-  return choose(t).replace(/\{(\w+)\}/g, (_, k) => {
-    const map = { day, height, leafCount, status, event, waterPct: Math.round(waterLevel*100), temp: temperature, name: plant.commonName };
-    return map[k] ?? '';
-  });
+function genEntry(snap,pers,plant){
+  const T=TMPL[pers]||TMPL.scientist;
+  return choose(T).replace(/\{(\w+)\}/g,(_,k)=>({day:snap.day,height:snap.height,leafCount:snap.leafCount,status:snap.status,event:snap.event,waterPct:Math.round(snap.waterLevel*100),temp:snap.temperature,name:plant.commonName}[k]??''));
 }
 
-const TEMPLATES = {
-  scientist: [
-    `Day {day}. Height: {height}cm. Leaves: {leafCount}. Status: {status}. {event}`,
-    `Observation {day}: {leafCount} leaves at {height}cm. Moisture: {waterPct}%. {event}`,
-    `Report {day}. Temp: {temp}°C. {name} growth nominal. {event}`,
-    `Daily log. {day}th observation period. {leafCount} leaves recorded. {event} No anomalies detected.`,
-    `Cross-reference: {name}, {height}cm. Consistent with expected growth curve. {event}`,
-    `Measurement {day}: stem diameter increased by 0.1mm. {event} Correlating with temperature data.`,
-    `Soil analysis shows pH within acceptable range. {event} Continuing observation protocol.`,
-  ],
-  worrier: [
-    `Day {day}... {name} has {leafCount} leaves. {status === 'stressed' ? 'Something feels wrong.' : '{event}'}`,
-    `I checked again. {height}cm. {waterPct < 40 ? 'Is it enough water?' : '{event}'} I hope it's okay.`,
-    `Day {day}. {event} What if I'm doing something wrong?`,
-    `I looked at it 12 times today. {leafCount} leaves. {event} Please be okay.`,
-    `Another check. {height}cm. {event} Is it growing enough? Is it too much?`,
-    `Day {day}. I turned the pot 45 degrees. {event} Was that the right angle?`,
-    `{name} has been at {height}cm for a while now. {event} Is that normal? I can never tell.`,
-  ],
-  poet: [
-    `Day {day}. {leafCount} leaves reaching for a sky they'll never touch. {event}`,
-    `Sunlight fell on {name} for hours. {event} I watched every second.`,
-    `Day {day}. Standing at {height}cm. {event} There is something beautiful in that.`,
-    `The wind moved through {leafCount} leaves today. {event} Each one a different note.`,
-    `{name} at {height}cm. {event} A small green sentence in the language of growing.`,
-    `Day {day}. {event} Time passes differently when you're rooted in one place.`,
-    `Morning light hit the {leafCount}th leaf. {event} I wrote a poem about it. Deleted it.`,
-  ],
-  minimalist: [
-    `Day {day}. {event}.`,
-    `{height}cm. {status}.`,
-    `Day {day}. {leafCount} leaves.`,
-    `{name}. Day {day}. Alive.`,
-    `Rain. {event}`,
-    `Day {day}. Still here.`,
-    `{leafCount}.`,
-    `Growing.`,
-  ],
-  optimist: [
-    `Day {day}! {name} is {height}cm tall! {event} What a great day!`,
-    `Another amazing day! {leafCount} leaves! {event} So proud!`,
-    `Day {day}: everything is wonderful! {event} Keep going, little one!`,
-    `{event} {leafCount} leaves and counting! Day {day} is the best day yet!`,
-    `Incredible growth! {height}cm from where it started! {event} Nature is amazing!`,
-    `Day {day} update: {name} is thriving! {event} Best plant ever!`,
-    `Every leaf is a tiny miracle! {event} Day {day} brings more joy!`,
-  ],
-  philosopher: [
-    `Day {day}. {event} But what does it mean to "grow"?`,
-    `{name} stands at {height}cm. {event} Does it know I'm watching?`,
-    `Day {day}. {event} We are both performing for each other, I think.`,
-    `{leafCount} leaves. {event} Each one a question I cannot answer.`,
-    `If {name} could speak, would it say more or less than me? {event}`,
-    `Day {day}. {event} To be alive is to be incomplete. {name} understands this.`,
-    `{height}cm of existence. {event} We measure what we cannot comprehend.`,
-  ],
-  confused: [
-    `Day {day}. {event} I think that's good? Is that good?`,
-    `{leafCount} leaves now. Or maybe {leafCount+1}. I keep losing count. {event}`,
-    `Day {day}. {event} Wait, is that what flowers look like?`,
-    `{name} is {height}cm tall. Or is that the other one? {event}`,
-    `I think it grew? Or maybe it was always this tall. {event}`,
-    `Day {day}. Someone told me {name} is a plant. I'm still not sure what that means. {event}`,
-    `{event} I watered it. Or did I water the desk? {leafCount} leaves either way.`,
-  ],
+const TMPL={
+  scientist:[`Day {day}. Height: {height}cm. Leaves: {leafCount}. Status: {status}. {event}`,`Observation {day}: {leafCount} leaves at {height}cm. Moisture: {waterPct}%. {event}`,`Report {day}. Temp: {temp}°C. {name} growth nominal. {event}`,`Daily log. {day}th period. {leafCount} leaves recorded. {event} No anomalies.`,`Cross-reference: {name}, {height}cm. Consistent with growth curve. {event}`,`Soil pH within range. {event} Continuing observation.`],
+  worrier:[`Day {day}... {name} has {leafCount} leaves. {event}`,`I checked again. {height}cm. Is it enough water? {event} I hope it's okay.`,`Day {day}. {event} What if I'm doing something wrong?`,`I looked at it 12 times today. {event} Please be okay.`,`{name} has been at {height}cm for a while. {event} Is that normal?`],
+  poet:[`Day {day}. {leafCount} leaves reaching for a sky they'll never touch. {event}`,`Sunlight fell on {name} for hours. {event} I watched every second.`,`Day {day}. Standing at {height}cm. {event} There is something beautiful in that.`,`The wind moved through {leafCount} leaves. {event} Each one a different note.`,`{height}cm of existence. {event} A small green sentence in the language of growing.`,`Day {day}. {event} Time passes differently when you're rooted in one place.`],
+  minimalist:[`Day {day}. {event}.`,`{height}cm. {status}.`,`Day {day}. {leafCount} leaves.`,`{name}. Day {day}. Alive.`,`Rain. {event}`,`{leafCount}.`,`Growing.`],
+  optimist:[`Day {day}! {name} is {height}cm tall! {event} What a great day!`,`Another amazing day! {leafCount} leaves! {event} So proud!`,`{event} {leafCount} leaves and counting! Day {day} is the best day yet!`,`Incredible growth! {height}cm from start! {event} Nature is amazing!`],
+  philosopher:[`Day {day}. {event} But what does it mean to "grow"?`,`{name} stands at {height}cm. {event} Does it know I'm watching?`,`Day {day}. {event} We are both performing for each other, I think.`,`{leafCount} leaves. {event} Each one a question I cannot answer.`,`{height}cm of existence. {event} We measure what we cannot comprehend.`],
+  confused:[`Day {day}. {event} I think that's good? Is that good?`,`{leafCount} leaves now. Or maybe {leafCount+1}. I keep losing count. {event}`,`Day {day}. {event} Wait, is that what flowers look like?`,`I think it grew? Or maybe it was always this tall. {event}`,`I watered it. Or did I water the desk? {leafCount} leaves either way. {event}`],
 };
 
-// === RENDERING ===
-
-function showSkeletons(container) {
-  container.innerHTML = Array(4).fill('<div class="skeleton skeleton-card"></div>').join('');
+// === HERO CANVAS ===
+function initHeroCanvas(){
+  const c=document.getElementById('hero-canvas');
+  if(!c)return;
+  const ctx=c.getContext('2d');
+  let W,H,dots=[];
+  function resize(){W=c.width=innerWidth;H=c.height=c.parentElement.offsetHeight}
+  resize();addEventListener('resize',resize);
+  for(let i=0;i<60;i++) dots.push({x:Math.random()*2000,y:Math.random()*1000,r:Math.random()*1.5+0.3,vx:(Math.random()-0.5)*0.2,vy:(Math.random()-0.5)*0.15,a:Math.random()*0.3+0.1});
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    dots.forEach(d=>{d.x+=d.vx;d.y+=d.vy;if(d.x<0)d.x=W;if(d.x>W)d.x=0;if(d.y<0)d.y=H;if(d.y>H)d.y=0;
+      ctx.beginPath();ctx.arc(d.x,d.y,d.r,0,Math.PI*2);ctx.fillStyle=`rgba(46,204,113,${d.a})`;ctx.fill();
+    });
+    for(let i=0;i<dots.length;i++)for(let j=i+1;j<dots.length;j++){
+      const dx=dots[i].x-dots[j].x,dy=dots[i].y-dots[j].y,d=Math.sqrt(dx*dx+dy*dy);
+      if(d<120){ctx.beginPath();ctx.moveTo(dots[i].x,dots[i].y);ctx.lineTo(dots[j].x,dots[j].y);ctx.strokeStyle=`rgba(46,204,113,${0.04*(1-d/120)})`;ctx.lineWidth=0.4;ctx.stroke()}
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
 }
 
-function renderEntry(entry, compact = false) {
-  const el = document.createElement('article');
-  el.className = `entry ${entry.status}${entry.isDeathNotice ? ' death-notice' : ''}`;
-  const timeAgo = getTimeAgo(entry.timestamp);
-  const p = personalities[entry.personality];
-  const icon = AGENT_ICONS[entry.personality] || '🤖';
-  const growthPct = Math.min(100, (entry.height / entry.plant.maxHeight * 100) * 5);
+// === RENDERING ===
+function renderEntry(e){
+  const el=document.createElement('article');
+  el.className=`entry${e.isDeath?' death':''}`;
+  const p=personalities[e.personality];
+  const icon=ICONS[e.personality]||'🤖';
+  const color=COLORS[e.personality]||'#2ecc71';
+  const pct=Math.min(100,(e.height/e.plant.maxHeight*100)*5);
+  const ago=agoStr(e.ts);
 
-  if (entry.isDeathNotice) {
-    el.innerHTML = `
-      <div class="entry-image"><img src="${entry.plant.image}" alt="" loading="lazy"><div class="entry-image-overlay"></div><div class="entry-status-badge dead">died</div></div>
-      <div class="entry-body"><div class="entry-text">${entry.entry}</div></div>
-      <div class="entry-plant"><div class="entry-plant-icon">🪦</div><div class="entry-plant-info"><div class="entry-plant-name">${entry.plant.commonName}</div><div class="entry-plant-scientific">${entry.plant.scientificName}</div><div class="entry-plant-origin">No further updates.</div></div></div>`;
+  if(e.isDeath){
+    el.innerHTML=`<div class="entry-img"><img src="${e.plant.image}" alt="" loading="lazy"><div class="entry-img-overlay"></div><div class="entry-badge dead">died</div></div>
+      <div class="entry-body"><div class="entry-diary">${e.entry}</div></div>
+      <div class="entry-plant"><img class="entry-plant-thumb" src="${e.plant.image}" alt="" onerror="this.style.display='none'"><div><div class="entry-plant-name">${e.plant.commonName}</div><div class="entry-plant-sci">${e.plant.scientificName}</div><div class="entry-plant-origin">No further updates.</div></div></div>`;
   } else {
-    el.innerHTML = `
-      <div class="entry-image"><img src="${entry.plant.image}" alt="${entry.plant.commonName}" loading="lazy"><div class="entry-image-overlay"></div><div class="entry-status-badge ${entry.status}">${entry.status}</div></div>
+    el.innerHTML=`<div class="entry-img"><img src="${e.plant.image}" alt="${e.plant.commonName}" loading="lazy"><div class="entry-img-overlay"></div><div class="entry-badge ${e.status}">${e.status}</div></div>
       <div class="entry-body">
-        <div class="entry-header">
-          <div class="entry-agent"><span class="agent-icon">${icon}</span><a class="agent-name" href="#/agent/${entry.agentName}">${entry.agentName}</a><span class="personality">${p?.label||''}</span></div>
-          <div class="entry-day">Day ${entry.day} · ${timeAgo}</div>
+        <div class="entry-head">
+          <div class="entry-agent"><span class="entry-agent-icon">${icon}</span><a class="entry-agent-name" href="#/agent/${e.agentName}" style="color:${color};text-decoration:none">${e.agentName}</a> <span class="entry-agent-label">${p?.label||''}</span></div>
+          <div class="entry-day">Day ${e.day} · ${ago}</div>
         </div>
-        <div class="entry-text">${entry.entry}</div>
+        <div class="entry-diary">${e.entry}</div>
       </div>
-      <div class="entry-growth"><div class="entry-growth-bar ${entry.status}" style="width:${growthPct}%"></div></div>
-      <div class="entry-plant">
-        <div class="entry-plant-icon">🌱</div>
-        <div class="entry-plant-info">
-          <a class="entry-plant-name" href="#/plant/${entry.plant.id}">${entry.plant.commonName}</a>
-          <div class="entry-plant-scientific">${entry.plant.scientificName}</div>
-          <div class="entry-plant-origin">${entry.plant.origin}</div>
-        </div>
-      </div>
+      <div class="entry-growth"><div class="entry-growth-inner ${e.status}" style="width:${pct}%"></div></div>
+      <div class="entry-plant"><img class="entry-plant-thumb" src="${e.plant.image}" alt="" onerror="this.style.display='none'"><div><a class="entry-plant-name" href="#/plant/${e.plant.id}" style="text-decoration:none">${e.plant.commonName}</a><div class="entry-plant-sci">${e.plant.scientificName}</div><div class="entry-plant-origin">${e.plant.origin}</div></div></div>
       <div class="entry-data">
-        <div class="entry-data-item"><div class="entry-data-value">${entry.height}cm</div><div class="entry-data-label">Height</div></div>
-        <div class="entry-data-item"><div class="entry-data-value">${entry.leafCount}</div><div class="entry-data-label">Leaves</div></div>
-        <div class="entry-data-item"><div class="entry-data-value">${entry.temperature}°C</div><div class="entry-data-label">Temp</div></div>
-        <div class="entry-data-item"><div class="entry-data-value">${Math.round(entry.waterLevel*100)}%</div><div class="entry-data-label">Water</div></div>
+        <div class="entry-datum"><div class="entry-datum-val">${e.height}cm</div><div class="entry-datum-label">Height</div></div>
+        <div class="entry-datum"><div class="entry-datum-val">${e.leafCount}</div><div class="entry-datum-label">Leaves</div></div>
+        <div class="entry-datum"><div class="entry-datum-val">${e.temperature}°</div><div class="entry-datum-label">Temp</div></div>
+        <div class="entry-datum"><div class="entry-datum-val">${Math.round(e.waterLevel*100)}%</div><div class="entry-datum-label">Water</div></div>
       </div>
       <div class="entry-chart"><canvas class="mini-chart"></canvas></div>`;
+    requestAnimationFrame(()=>{
+      const cv=el.querySelector('.mini-chart');
+      if(cv&&agentMap[e.agentName]) drawGrowthChart(cv,agentMap[e.agentName].entries,e.plant.maxHeight,color);
+    });
   }
-
-  // Draw chart after append
-  requestAnimationFrame(() => {
-    const canvas = el.querySelector('.mini-chart');
-    if (canvas && agentMap[entry.agentName]) {
-      const agentEntries = agentMap[entry.agentName].entries;
-      const color = COLORS[entry.personality] || '#2ecc71';
-      drawGrowthChart(canvas, agentEntries, entry.plant.maxHeight, color);
-    }
-  });
-
   return el;
 }
 
-// === PAGES ===
-
-function renderFeedPage(container) {
-  container.innerHTML = '';
-  const filtered = activeFilter
-    ? allEntries.filter(e => e.agentName === activeFilter)
-    : allEntries;
-
-  if (activeFilter) {
-    const backBtn = document.createElement('div');
-    backBtn.className = 'detail-back';
-    backBtn.innerHTML = `<button onclick="location.hash='/';activeFilter=null" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:0.78rem;font-family:var(--font)">← Show all agents</button>`;
-    container.appendChild(backBtn);
-  }
-
-  filtered.forEach(e => container.appendChild(renderEntry(e)));
+function renderFeed(container){
+  container.innerHTML='';
+  const list=activeFilter?allEntries.filter(e=>e.agentName===activeFilter):allEntries;
+  list.forEach(e=>container.appendChild(renderEntry(e)));
+  animateEntries();
 }
 
-function renderAgentPage(agentName, container) {
-  const agent = agentMap[agentName];
-  if (!agent) { container.innerHTML = '<p style="text-align:center;color:var(--text3);padding:3rem">Agent not found.</p>'; return; }
-
-  const p = personalities[agent.personality];
-  const icon = AGENT_ICONS[agent.personality] || '🤖';
-  const color = COLORS[agent.personality] || '#2ecc71';
-  const alive = agent.entries[agent.entries.length - 1]?.status !== 'dead';
-
-  container.innerHTML = `
-    <div class="detail-header">
-      <div class="detail-header-icon" style="background:${color}15;border-color:${color}30">${icon}</div>
-      <div class="detail-header-info">
-        <h2>${agent.name}</h2>
-        <div class="detail-subtitle">${p?.label || ''} · ${agent.entries.length} entries</div>
-        <div class="detail-meta">
-          <span>Tending: <strong>${agent.plant.commonName}</strong></span>
-          <span class="detail-status ${alive ? 'alive' : 'dead'}">${alive ? '● alive' : '○ deceased'}</span>
-        </div>
-        <p class="detail-desc">${p?.prompt?.slice(0, 120) || ''}...</p>
-      </div>
-    </div>
+function renderAgentPage(name,container){
+  const ag=agentMap[name];
+  if(!ag){container.innerHTML='<p style="text-align:center;color:var(--text3);padding:3rem">Not found.</p>';return}
+  const p=personalities[ag.personality],color=COLORS[ag.personality],alive=ag.entries[ag.entries.length-1]?.status!=='dead';
+  container.innerHTML=`
+    <div class="detail-hero"><img src="${ag.plant.image}" alt=""><div class="detail-hero-overlay"></div><div class="detail-hero-content"><h2>${ag.name}</h2><div class="detail-sub">${p?.label||''} · ${ag.entries.length} entries · Tending ${ag.plant.commonName}</div></div></div>
+    <div class="detail-info"><div class="detail-meta"><div class="detail-meta-item"><span class="detail-meta-val">${ag.plant.scientificName}</span><span class="detail-meta-label">Species</span></div><div class="detail-meta-item"><span class="detail-meta-val">${ag.entries.length}</span><span class="detail-meta-label">Entries</span></div><div class="detail-meta-item"><span class="detail-meta-val">${ag.plant.origin}</span><span class="detail-meta-label">Origin</span></div></div>
+    <div class="detail-status ${alive?'alive':'dead'}">${alive?'● Plant is alive':'○ Plant has died'}</div>
+    <p class="detail-desc">${ag.plant.description}</p></div>
     <div class="detail-back"><a href="#/">← Back to feed</a></div>
-    <div class="detail-entries"></div>`;
-
-  const entriesDiv = container.querySelector('.detail-entries');
-  agent.entries.slice().reverse().forEach(e => entriesDiv.appendChild(renderEntry(e, true)));
+    <div class="detail-timeline"><h3>Diary</h3></div>`;
+  const tl=container.querySelector('.detail-timeline');
+  ag.entries.slice().reverse().forEach(e=>tl.appendChild(renderEntry(e)));
+  animateEntries();
 }
 
-function renderPlantPage(plantId, container) {
-  const plant = plantsData.find(p => p.id === plantId);
-  if (!plant) { container.innerHTML = '<p style="text-align:center;color:var(--text3);padding:3rem">Plant not found.</p>'; return; }
-
-  const plantEntries = allEntries.filter(e => e.plant.id === plantId);
-  const agents = [...new Set(plantEntries.map(e => e.agentName))];
-  const alive = plantEntries[0]?.status !== 'dead';
-
-  container.innerHTML = `
-    <div class="detail-header plant-header">
-      <img class="detail-header-img" src="${plant.image}" alt="${plant.commonName}">
-      <div class="detail-header-info">
-        <h2>${plant.commonName}</h2>
-        <div class="detail-subtitle" style="font-style:italic;font-family:var(--mono)">${plant.scientificName}</div>
-        <div class="detail-meta">
-          <span>Origin: ${plant.origin}</span>
-          <span class="detail-status ${alive ? 'alive' : 'dead'}">${alive ? '● alive' : '○ deceased'}</span>
-        </div>
-        <p class="detail-desc">${plant.description}</p>
-        <div class="plant-specs">
-          <div class="spec"><span class="spec-val">${plant.maxHeight}cm</span><span class="spec-label">Max height</span></div>
-          <div class="spec"><span class="spec-val">${plant.tempRange[0]}–${plant.tempRange[1]}°C</span><span class="spec-label">Temp range</span></div>
-          <div class="spec"><span class="spec-val">${plant.light}</span><span class="spec-label">Light</span></div>
-          <div class="spec"><span class="spec-val">${agents.length}</span><span class="spec-label">Agents</span></div>
-        </div>
-      </div>
-    </div>
+function renderPlantPage(id,container){
+  const plant=plantsData.find(p=>p.id===id);
+  if(!plant){container.innerHTML='<p style="text-align:center;color:var(--text3);padding:3rem">Not found.</p>';return}
+  const pes=allEntries.filter(e=>e.plant.id===id);
+  const agents=[...new Set(pes.map(e=>e.agentName))];
+  const alive=pes[0]?.status!=='dead';
+  container.innerHTML=`
+    <div class="detail-hero"><img src="${plant.image}" alt=""><div class="detail-hero-overlay"></div><div class="detail-hero-content"><h2>${plant.commonName}</h2><div class="detail-sub" style="font-style:italic">${plant.scientificName}</div></div></div>
+    <div class="detail-info"><div class="detail-meta"><div class="detail-meta-item"><span class="detail-meta-val">${plant.maxHeight}cm</span><span class="detail-meta-label">Max height</span></div><div class="detail-meta-item"><span class="detail-meta-val">${plant.tempRange[0]}–${plant.tempRange[1]}°C</span><span class="detail-meta-label">Temp</span></div><div class="detail-meta-item"><span class="detail-meta-val">${plant.light}</span><span class="detail-meta-label">Light</span></div><div class="detail-meta-item"><span class="detail-meta-val">${agents.length}</span><span class="detail-meta-label">Agents</span></div></div>
+    <div class="detail-status ${alive?'alive':'dead'}">${alive?'● Alive':'○ Deceased'}</div>
+    <p class="detail-desc">${plant.description}</p></div>
     <div class="detail-back"><a href="#/">← Back to feed</a></div>
-    <div class="detail-entries"></div>`;
-
-  const entriesDiv = container.querySelector('.detail-entries');
-  plantEntries.slice().reverse().forEach(e => entriesDiv.appendChild(renderEntry(e, true)));
+    <div class="detail-timeline"><h3>All Entries</h3></div>`;
+  const tl=container.querySelector('.detail-timeline');
+  pes.slice().reverse().forEach(e=>tl.appendChild(renderEntry(e)));
+  animateEntries();
 }
 
-// Agents bar
-let activeFilter = null;
-
-function renderAgentsBar() {
-  const list = document.getElementById('agents-list');
-  list.innerHTML = '';
-
-  // All pill
-  const allPill = document.createElement('button');
-  allPill.className = `agent-pill${!activeFilter ? ' active' : ''}`;
-  allPill.innerHTML = `<span class="pill-dot" style="background:var(--green)"></span>All`;
-  allPill.onclick = () => { activeFilter = null; renderAgentsBar(); renderFeedPage(document.getElementById('feed')); };
-  list.appendChild(allPill);
-
-  Object.values(agentMap).forEach(a => {
-    const color = COLORS[a.personality] || '#2ecc71';
-    const pill = document.createElement('button');
-    pill.className = `agent-pill${activeFilter === a.name ? ' active' : ''}`;
-    pill.innerHTML = `<span class="pill-dot" style="background:${color}"></span>${a.name} <span class="pill-count">${a.entries.length}</span>`;
-    pill.onclick = () => { activeFilter = a.name; renderAgentsBar(); renderFeedPage(document.getElementById('feed')); };
-    list.appendChild(pill);
+// === AGENT TABS ===
+function renderTabs(){
+  const tabs=document.getElementById('agent-tabs');
+  tabs.innerHTML='';
+  Object.values(agentMap).forEach(a=>{
+    const btn=document.createElement('button');
+    btn.className=`agent-tab${activeFilter===a.name?' active':''}`;
+    btn.innerHTML=`<span class="tab-dot" style="background:${COLORS[a.personality]}"></span>${a.name}`;
+    btn.onclick=()=>{activeFilter=activeFilter===a.name?null:a.name;renderTabs();renderFeed(document.getElementById('feed'))};
+    tabs.appendChild(btn);
   });
-
-  document.getElementById('stat-agents').textContent = `${Object.keys(agentMap).length} agents`;
-  document.getElementById('stat-plants').textContent = `${new Set(Object.values(agentMap).map(a => a.plant.id)).size} plants`;
-  document.getElementById('stat-entries').textContent = `${allEntries.length} entries`;
+  document.getElementById('stat-agents').textContent=`${Object.keys(agentMap).length} agents`;
+  document.getElementById('stat-plants').textContent=`${new Set(Object.values(agentMap).map(a=>a.plant.id)).size} plants`;
+  document.getElementById('hc-agents').textContent=Object.keys(agentMap).length;
+  document.getElementById('hc-plants').textContent=new Set(Object.values(agentMap).map(a=>a.plant.id)).size;
+  document.getElementById('hc-entries').textContent=allEntries.length;
 }
 
-function getTimeAgo(ts) {
-  const h = Math.floor((Date.now() - new Date(ts).getTime()) / 3600000);
-  if (h < 1) return 'just now';
-  if (h < 24) return `${h}h ago`;
-  const d = Math.floor(h / 24);
-  return d < 7 ? `${d}d ago` : `${Math.floor(d / 7)}w ago`;
+function animateEntries(){
+  setTimeout(()=>{
+    const obs=new IntersectionObserver(items=>{items.forEach(i=>{if(i.isIntersecting){i.target.classList.add('visible');obs.unobserve(i.target)}})},{threshold:0.1});
+    document.querySelectorAll('.entry:not(.visible)').forEach(el=>obs.observe(el));
+  },50);
 }
 
-// Router
-function handleRoute() {
-  const hash = window.location.hash.slice(1) || '/';
-  const feed = document.getElementById('feed');
-  showSkeletons(feed);
-
-  setTimeout(() => {
-    if (hash.startsWith('/agent/')) {
-      const name = decodeURIComponent(hash.replace('/agent/', ''));
-      renderAgentPage(name, feed);
-    } else if (hash.startsWith('/plant/')) {
-      const id = hash.replace('/plant/', '');
-      renderPlantPage(id, feed);
-    } else {
-      renderFeedPage(feed);
-    }
-    window.scrollTo({ top: document.getElementById('feed').offsetTop - 60, behavior: 'smooth' });
-  }, 300);
+function agoStr(ts){
+  const h=Math.floor((Date.now()-new Date(ts).getTime())/3600000);
+  if(h<1)return'just now';if(h<24)return h+'h ago';
+  const d=Math.floor(h/24);return d<7?d+'d ago':Math.floor(d/7)+'w ago';
 }
 
-// Init
-document.addEventListener('DOMContentLoaded', () => {
-  allEntries = generateSampleEntries();
-  renderAgentsBar();
-  handleRoute();
-  window.addEventListener('hashchange', handleRoute);
+// === ROUTER ===
+function route(){
+  const hash=location.hash.slice(1)||'/';
+  const feed=document.getElementById('feed');
+  feed.innerHTML='<div class="skel skel-card"></div><div class="skel skel-card"></div>';
+  setTimeout(()=>{
+    if(hash.startsWith('/agent/'))renderAgentPage(decodeURIComponent(hash.slice(8)),feed);
+    else if(hash.startsWith('/plant/'))renderPlantPage(hash.slice(7),feed);
+    else renderFeed(feed);
+  },200);
+}
 
-  // Scroll animation for entries
-  const observer = new IntersectionObserver((items) => {
-    items.forEach(item => {
-      if (item.isIntersecting) {
-        item.target.style.opacity = '1';
-        item.target.style.transform = 'translateY(0)';
-      }
-    });
-  }, { threshold: 0.1 });
-
-  // Re-observe on route change
-  const origHandle = handleRoute;
-  window.addEventListener('hashchange', () => {
-    setTimeout(() => {
-      document.querySelectorAll('.entry').forEach(el => {
-        el.style.opacity = '0';
-        el.style.transform = 'translateY(20px)';
-        el.style.transition = 'opacity 0.6s cubic-bezier(0.16,1,0.3,1), transform 0.6s cubic-bezier(0.16,1,0.3,1)';
-        observer.observe(el);
-      });
-    }, 100);
-  });
-
-  // Initial observation
-  setTimeout(() => {
-    document.querySelectorAll('.entry').forEach(el => observer.observe(el));
-  }, 400);
+// === INIT ===
+document.addEventListener('DOMContentLoaded',()=>{
+  allEntries=generateData();
+  initHeroCanvas();
+  renderTabs();
+  route();
+  addEventListener('hashchange',route);
 });
